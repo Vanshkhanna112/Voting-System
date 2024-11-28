@@ -1,0 +1,292 @@
+import java.util.*;
+
+public class Main {
+    private static List<User> users = new ArrayList<>(); // Stores user information
+    private static List<Candidate> candidates = new ArrayList<>(); // Stores candidate information
+    private static List<String> bannedUsers = new ArrayList<>(); // Tracks banned usernames
+    private static final String ADMIN_USERNAME = "admin";
+    private static String adminPassword = "admin123"; // Admin password (can be changed)
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        // Add default candidates
+        candidates.add(new Candidate("Candidate A"));
+        candidates.add(new Candidate("Candidate B"));
+        candidates.add(new Candidate("Candidate C"));
+
+        // Main program loop
+        while (true) {
+            System.out.println("\n===== Voting Management System =====");
+            System.out.println("1. Register User");
+            System.out.println("2. Login and Vote");
+            System.out.println("3. Admin Login");
+            System.out.println("4. Exit");
+            System.out.print("Choose an option: ");
+            int choice = scanner.nextInt();
+            scanner.nextLine(); // Consume newline
+
+            switch (choice) {
+                case 1:
+                    registerUser(scanner);
+                    break;
+                case 2:
+                    loginAndVote(scanner);
+                    break;
+                case 3:
+                    adminLogin(scanner);
+                    break;
+                case 4:
+                    System.out.println("Exiting the system. Thank you!");
+                    return;
+                default:
+                    System.out.println("Invalid option. Please try again.");
+            }
+        }
+    }
+
+    private static void registerUser(Scanner scanner) {
+        System.out.print("\nEnter a new username: ");
+        String username = scanner.nextLine();
+        if (findUser(username) != null) {
+            System.out.println("User already registered. Please use a different username.");
+            return;
+        }
+        System.out.print("Enter a password: ");
+        String password = scanner.nextLine();
+        users.add(new User(username, password));
+        System.out.println("User registered successfully! You can now log in and vote.");
+    }
+
+    private static void loginAndVote(Scanner scanner) {
+        System.out.print("\nEnter your username: ");
+        String username = scanner.nextLine();
+        System.out.print("Enter your password: ");
+        String password = scanner.nextLine();
+
+        User user = findUser(username);
+        if (user == null) {
+            System.out.println("Error: User not found. Please register first.");
+            return;
+        }
+        if (!user.getPassword().equals(password)) {
+            System.out.println("Error: Incorrect password. Please try again.");
+            return;
+        }
+        if (bannedUsers.contains(username)) {
+            System.out.println("You are banned from voting. Please contact the admin.");
+            return;
+        }
+        if (user.hasVoted()) {
+            System.out.println("You have already voted.");
+            return;
+        }
+
+        System.out.println("\nAvailable Candidates:");
+        if (candidates.isEmpty()) {
+            System.out.println("No candidates available for voting. Please contact the admin.");
+            return;
+        }
+
+        // Display candidates
+        for (int i = 0; i < candidates.size(); i++) {
+            System.out.println((i + 1) + ". " + candidates.get(i).getName());
+        }
+
+        System.out.print("Enter the number of your preferred candidate: ");
+        int candidateChoice = scanner.nextInt();
+        scanner.nextLine(); // Consume newline
+
+        if (candidateChoice < 1 || candidateChoice > candidates.size()) {
+            System.out.println("Invalid choice. Please try again.");
+            return;
+        }
+
+        // Vote for the selected candidate
+        Candidate chosenCandidate = candidates.get(candidateChoice - 1);
+        chosenCandidate.incrementVotes();
+        user.setVoted(true);
+
+        System.out.println("Thank you for voting! Your vote has been recorded for " + chosenCandidate.getName() + ".");
+    }
+
+    private static void adminLogin(Scanner scanner) {
+        System.out.print("\nEnter admin username: ");
+        String adminUsername = scanner.nextLine();
+        System.out.print("Enter admin password: ");
+        String enteredPassword = scanner.nextLine();
+
+        if (!ADMIN_USERNAME.equals(adminUsername) || !adminPassword.equals(enteredPassword)) {
+            System.out.println("Invalid admin credentials.");
+            return;
+        }
+
+        while (true) {
+            System.out.println("\n===== Admin Menu =====");
+            System.out.println("1. Add Candidate");
+            System.out.println("2. Remove Candidate");
+            System.out.println("3. View Candidates");
+            System.out.println("4. View Voting Results");
+            System.out.println("5. Ban/Unban User");
+            System.out.println("6. Change Admin Password");
+            System.out.println("7. Logout");
+            System.out.print("Choose an option: ");
+            int adminChoice = scanner.nextInt();
+            scanner.nextLine(); // Consume newline
+
+            switch (adminChoice) {
+                case 1:
+                    addCandidate(scanner);
+                    break;
+                case 2:
+                    removeCandidate(scanner);
+                    break;
+                case 3:
+                    viewCandidates();
+                    break;
+                case 4:
+                    viewVotingResults();
+                    break;
+                case 5:
+                    banUnbanUser(scanner);
+                    break;
+                case 6:
+                    changeAdminPassword(scanner);
+                    break;
+                case 7:
+                    System.out.println("Logging out of admin menu.");
+                    return;
+                default:
+                    System.out.println("Invalid option. Please try again.");
+            }
+        }
+    }
+
+    private static void addCandidate(Scanner scanner) {
+        System.out.print("\nEnter the name of the new candidate: ");
+        String candidateName = scanner.nextLine();
+        for (Candidate candidate : candidates) {
+            if (candidate.getName().equalsIgnoreCase(candidateName)) {
+                System.out.println("Candidate already exists.");
+                return;
+            }
+        }
+        candidates.add(new Candidate(candidateName));
+        System.out.println("Candidate added successfully!");
+    }
+
+    private static void removeCandidate(Scanner scanner) {
+        System.out.print("\nEnter the name of the candidate to remove: ");
+        String candidateName = scanner.nextLine();
+        Iterator<Candidate> iterator = candidates.iterator();
+        while (iterator.hasNext()) {
+            if (iterator.next().getName().equalsIgnoreCase(candidateName)) {
+                iterator.remove();
+                System.out.println("Candidate removed successfully.");
+                return;
+            }
+        }
+        System.out.println("Candidate not found.");
+    }
+
+    private static void viewCandidates() {
+        System.out.println("\nList of Candidates:");
+        if (candidates.isEmpty()) {
+            System.out.println("No candidates available.");
+        } else {
+            for (Candidate candidate : candidates) {
+                System.out.println("- " + candidate.getName());
+            }
+        }
+    }
+
+    private static void viewVotingResults() {
+        System.out.println("\n===== Voting Results =====");
+        if (candidates.isEmpty()) {
+            System.out.println("No votes have been cast yet.");
+        } else {
+            for (Candidate candidate : candidates) {
+                System.out.println(candidate.getName() + ": " + candidate.getVotes() + " votes");
+            }
+        }
+    }
+
+    private static void banUnbanUser(Scanner scanner) {
+        System.out.print("\nEnter the username of the user to ban/unban: ");
+        String username = scanner.nextLine();
+
+        if (bannedUsers.contains(username)) {
+            bannedUsers.remove(username);
+            System.out.println("User " + username + " has been unbanned.");
+        } else {
+            bannedUsers.add(username);
+            System.out.println("User " + username + " has been banned from voting.");
+        }
+    }
+
+    private static void changeAdminPassword(Scanner scanner) {
+        System.out.print("\nEnter a new admin password: ");
+        String newPassword = scanner.nextLine();
+        adminPassword = newPassword;
+        System.out.println("Admin password changed successfully.");
+    }
+
+    private static User findUser(String username) {
+        for (User user : users) {
+            if (user.getUsername().equalsIgnoreCase(username)) {
+                return user;
+            }
+        }
+        return null;
+    }
+}
+
+class User {
+    private String username;
+    private String password;
+    private boolean hasVoted;
+
+    public User(String username, String password) {
+        this.username = username;
+        this.password = password;
+        this.hasVoted = false;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public boolean hasVoted() {
+        return hasVoted;
+    }
+
+    public void setVoted(boolean hasVoted) {
+        this.hasVoted = hasVoted;
+    }
+}
+
+class Candidate {
+    private String name;
+    private int votes;
+
+    public Candidate(String name) {
+        this.name = name;
+        this.votes = 0;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getVotes() {
+        return votes;
+    }
+
+    public void incrementVotes() {
+        votes++;
+    }
+}
